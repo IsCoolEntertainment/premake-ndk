@@ -70,6 +70,14 @@ newaction {
 							printf('Exporting %s...', path.getrelative(os.getcwd(), dst))
 							os.copyfile(v, dst)
 						end
+					elseif not path.iscppfile(v) and not path.iscfile(v) and not path.iscppheader(v) and path.getextension(v) ~= '.lua' then
+						if os.isfile(v) then
+							local dir = ndk.getAssetPath(prj, cfg)
+							os.mkdir(dir)
+							local dst = path.join(dir, path.getname(v))
+							printf('Exporting %s...', path.getrelative(os.getcwd(), dst))
+							os.copyfile(v, dst)
+						end
 					end
 				end
 			end
@@ -83,19 +91,8 @@ newaction {
 	oncleanproject = function(prj)
 		for cfg in project.eachconfig(prj) do
 			if prj.kind == premake.WINDOWEDAPP then
-				premake.clean.file(prj, ndk.getManifestFilename(prj, cfg))
-
-				-- Produce the Java source, if present.
-				if cfg.activity and cfg.baseactivity and cfg.packagename and cfg.basepackagename then
-					premake.clean.file(ndk.getActivityFilename(prj, cfg))
-				end
-
-				-- Clean Java source
-				for _,v in ipairs(cfg.files) do
-					if path.getextension(v) == ndk.JAVA then
-						premake.clean.file(path.join(ndk.getJavaPath(prj, cfg), path.getbasename(v)))
-					end
-				end
+				-- Just clean the entire folder.
+				premake.clean.dir(prj, ndk.getProjectPath(prj, cfg))
 			end
 		end
 	end
@@ -104,6 +101,12 @@ newaction {
 -- Manifest goes in project dirctory
 function ndk.getManifestFilename(this, cfg)
 	return path.join(ndk.getProjectPath(this, cfg), ndk.MANIFEST)
+end
+
+-- Source path for Java files. They need to be under a directory tree based on the package name.
+function ndk.getAssetPath(this, cfg)
+	-- Asset files live in assets under the build directory
+	return path.join(ndk.getProjectPath(this, cfg), 'assets')
 end
 
 -- Source path for Java files. They need to be under a directory tree based on the package name.

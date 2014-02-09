@@ -174,7 +174,7 @@ function ndk.writeStrings(tag, prefix, strings)
 		-- Prepend tab
 		prefix = '\t'..prefix
 
-		-- Write paths from table
+		-- Write strings from table
 		_p("%s := %s%s%s", tag, suffix, prefix, table.concat(strings, suffix..prefix))
 	end
 end
@@ -217,7 +217,14 @@ function ndk.generateMakefile(prj, cfg)
 	_p('LOCAL_MODULE := '..ndk.getModuleName(prj, cfg))
 	ndk.writeStrings('LOCAL_CFLAGS', '-D', cfg.defines)
 	ndk.writeStrings('LOCAL_CPP_FEATURES', '', ndk.getCppFeatures(cfg))
-	ndk.writeStrings('LOCAL_LDLIBS', '-l', config.getlinks(cfg, 'system', 'basename'))
+
+	-- Join linker options with linked libraries to get single table
+	local link_options = cfg.linkoptions
+	local links = config.getlinks(cfg, 'system', 'basename')
+	for _,v in ipairs(links) do
+		table.insert(link_options, '-l'..v)
+	end
+	ndk.writeStrings('LOCAL_LDLIBS', '', link_options)
 	ndk.writeStrings('LOCAL_SHARED_LIBRARIES', '', ndk.getDependentModules(prj, cfg, premake.SHAREDLIB))
 	ndk.writeStrings('LOCAL_STATIC_LIBRARIES', '', ndk.getDependentModules(prj, cfg, premake.STATICLIB))
 	_p('')

@@ -19,13 +19,6 @@ local solution  = premake.solution
 -- Register Android configuration options with Premake.
 --
 
--- Specify android API levels
-api.register {
-	name = "apilevel",
-	scope = "config",
-	kind = "integer"
-}
-
 -- Specify android ABIs
 api.register {
 	name = "abis",

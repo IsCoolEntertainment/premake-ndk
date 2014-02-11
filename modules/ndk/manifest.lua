@@ -158,7 +158,8 @@ function ndk.generateManifest(prj, cfg)
 			_x(2, 'android:theme="@android:style/Theme.NoTitleBar.Fullscreen">')
 
 			-- Contains activity
-			_x(2, '<activity android:name="%s.%s">', prj.packagename or 'com.example.app', cfg.activity or 'Activity')
+			_x(2, '<activity android:name="%s.%s"', prj.packagename or 'com.example.app', cfg.activity or 'Activity')
+				_x(3,'android:screenOrientation="landscape">')
 
 				-- Launcher intent
 				_x(3, '<intent-filter>')
@@ -171,8 +172,8 @@ function ndk.generateManifest(prj, cfg)
 		_x(1, '</application>')
 
 	-- SDK version
-	if cfg.apilevel then
-		_x(1, '<uses-sdk android:minSdkVersion="%d" />', cfg.apilevel)
+	if cfg.framework then
+		_x(1, '<uses-sdk android:minSdkVersion="%d" />', ndk.getApiLevel(cfg))
 	end
 
 	-- Features

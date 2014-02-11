@@ -43,3 +43,16 @@ function ndk.isValidProject(prj)
 	-- Otherwise invalid
 	return false
 end
+
+-- Extract API level from framework
+function ndk.getApiLevel(cfg)
+	if cfg.framework then
+		local version, count = cfg.framework:gsub('android%-', '')
+		if count == 1 then
+			return tonumber(version)
+		end
+	end
+
+	-- Unknown API level
+	return 1
+end

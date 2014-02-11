@@ -16,10 +16,8 @@ This module provides two new actions:
 	so that ant can see them. The manifest generated is simple, but is suitable for e.g. porting games using
 	libraries such as SDL2. For more advanced use it would be better to create your own manifest and JNI wrappers.
 	
-Some Premake configuration options are mapped to suitable NDK options. E.g. `optimize` is mapped to `APP_OPTIM`. 
-New configuration options are also available:
-
-* `apilevel`: An integer which specifies the Android API level to target.
+Some Premake configuration options are mapped to suitable NDK options. E.g. `optimize` is mapped to `APP_OPTIM`,
+and `framework` should specify the API level, e.g. `android-10`. New configuration options are also available:
 
 * `abis`: A list of strings specifying one or more ABIs to generate code for.
 

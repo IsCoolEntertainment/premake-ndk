@@ -93,10 +93,6 @@ api.register {
 	list = true
 }
 
--- Retrieve module's path and allow relative includes 
-local this_file = debug.getinfo(1, "S").source:sub(2) 
-package.path = path.getdirectory(this_file) .. "/?.lua;".. package.path
-
 -- Support code
 require 'common'
 

@@ -12,7 +12,7 @@ local config    = premake.config
 newaction {
 	trigger     = "ndk-manifest",
 	shortname   = "Android NDK manifest",
-	description = "Generate manifest and other app build files for Android NDK Build",
+	description = "Generate manifest and other app build files for Android",
 
 	-- The capabilities of this action
 	valid_kinds     = { "WindowedApp", "StaticLib", "SharedLib" },

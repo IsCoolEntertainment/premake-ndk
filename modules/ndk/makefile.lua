@@ -132,7 +132,7 @@ end
 function ndk.writeDependencies(location, depends, cfg)
 	for _,d in ipairs(depends) do
 		if ndk.isValidProject(d) then	
-			local p = project.getfilename(d, ndk.getMakefileName(d, cfg, ndk.MAKEFILE))
+			local p = premake.filename(d, ndk.getMakefileName(d, cfg, ndk.MAKEFILE))
 			p = path.getrelative(location, p)
 			_p('include $(DEPENDENCY_PATH)/'..make.esc(p))
 		end

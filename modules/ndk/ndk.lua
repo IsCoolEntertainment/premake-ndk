@@ -50,6 +50,13 @@ api.register {
 	}
 }
 
+-- Specify android NDK toolchain version
+api.register {
+	name = "toolchain",
+	scope = "config",
+	kind = "string"
+}
+
 -- Specify android package name
 api.register {
 	name = "packagename",
@@ -92,6 +99,27 @@ api.register {
 	kind = "string",
 	list = true
 }
+
+api.register {
+       name = "ndkmodulepaths",
+       scope = "project",
+       kind = "string",
+       list = true
+}
+
+api.register {
+       name = "ndkmodules",
+       scope = "project",
+       kind = "string",
+       list = true
+}
+
+api.register {
+       name = "ndklinkswhole",
+       scope = "project",
+       kind = "string",
+       list = true
+}       
 
 -- Support code
 require 'common'

@@ -48,11 +48,19 @@ newaction {
 			end
 
 			-- Generate the ndk-build makefile
-			premake.generate(prj, ndk.getMakefileName(prj, cfg, ndk.MAKEFILE), generateMakefileCallback)
+			local makefileName = ndk.getMakefileName(prj, cfg, ndk.MAKEFILE)
+			local makefileTempName = makefileName .. ".tmp"
+			
+			premake.generate(prj, makefileTempName, generateMakefileCallback)
+			ndk.compareAndUpdate(makefileTempName, makefileName)
 
 			if cfg.kind == premake.WINDOWEDAPP then
 				-- Generate the application makefile for application projects only
-				premake.generate(prj, ndk.getMakefileName(prj, cfg, ndk.APPMAKEFILE), generateAppMakefileCallback)
+				makefileName = ndk.getMakefileName(prj, cfg, ndk.APPMAKEFILE)
+				makefileTempName = makefileName .. ".tmp"
+				
+				premake.generate(prj, makefileTempName, generateAppMakefileCallback)
+				ndk.compareAndUpdate(makefileTempName, makefileName)
 			end
 		end
 	end,
@@ -73,6 +81,33 @@ newaction {
 	end
 }
 
+function ndk.compareAndUpdate(newFile, originalFile)
+
+	local newFileFd = assert(io.open(newFile, "rb"))
+	local newContent = newFileFd:read("*all")
+	newFileFd:close()
+
+	local originalFileFd = io.open(originalFile, "rb")
+	local rewrite = false
+	
+	if originalFileFd == nil then
+		rewrite = true
+	else
+		local originalContent = originalFileFd:read("*all")
+		originalFileFd:close()
+
+		rewrite = newContent ~= originalContent
+
+	end
+
+	if rewrite then
+		originalFileFd = assert(io.open(originalFile, "wb"))
+		originalFileFd:write(newContent)
+		originalFileFd:close()
+	end
+
+	os.remove(newFile)
+end
 
 -- Map premake cflags onto ndk-build cpp features
 function ndk.getCppFeatures(cfg)
@@ -125,27 +160,82 @@ function ndk.generateAppMakefile(prj, cfg)
 		-- Optimise defaults to "release"
 		_p('APP_OPTIM := debug')
 	end
+	if cfg.toolchain then
+		_p('NDK_TOOLCHAIN_VERSION := %s', cfg.toolchain)
+	end
 	_p('')			
 end
 
 -- Write a list of makefile dependencies
 function ndk.writeDependencies(location, depends, cfg)
+	local modules = {}
 	for _,d in ipairs(depends) do
 		if ndk.isValidProject(d) then	
 			local p = premake.filename(d, ndk.getMakefileName(d, cfg, ndk.MAKEFILE))
 			p = path.getrelative(location, p)
-			_p('include $(DEPENDENCY_PATH)/'..make.esc(p))
+			p = path.getdirectory(p)
+			table.insert(modules, make.esc(p))
 		end
 	end
+	ndk.writeModules(modules)
+end
+
+-- Write a list of import module paths
+function ndk.writeModulePaths(paths)
+	for _,p in ipairs(paths) do
+		_p('$(call import-add-path, ' .. p .. ')')
+	end
+end
+
+-- Write a list of import module
+function ndk.writeModules(modules)
+	for _,d in ipairs(modules) do
+		_p('$(call import-module, ' .. d .. ')')
+	end
+end
+
+-- Write all links, separating LOCAL_STATIC_LIBRARIES and LOCAL_WHOLE_STATIC_LIBRARIES
+function ndk.writeLinks(prj, cfg)
+	local link_options = cfg.linkoptions
+	local links = config.getlinks(cfg, 'system', 'basename')
+	local links_whole = {}
+
+	-- add link directories
+	for _,v in ipairs(cfg.libdirs) do
+		table.insert(link_options, '-L' .. v)
+	end
+
+	-- links system libraries, except the one specified as "whole"
+	for _,v in ipairs(links) do
+		if not table.contains(cfg.ndklinkswhole, v) then
+			table.insert(link_options, '-l'..v)
+		else
+			table.insert(links_whole, v)
+		end
+	end
+
+	ndk.writeStrings('LOCAL_LDLIBS', '', link_options)
+
+	-- add shared libraries
+	ndk.writeStrings('LOCAL_SHARED_LIBRARIES', '', ndk.getDependentModules(prj, cfg, premake.SHAREDLIB))
+
+
+	-- separate static libraries and whole static libraries
+	local static_libs = ndk.getDependentModules(prj, cfg, premake.STATICLIB)
+	local links_static = {}
+	for _,v in ipairs(static_libs) do
+		if not table.contains(cfg.ndklinkswhole, v) then
+			table.insert(links_static, v)
+		else
+			table.insert(links_whole, v)
+		end
+	end
+	ndk.writeStrings('LOCAL_STATIC_LIBRARIES', '', links_static)
+	ndk.writeStrings('LOCAL_WHOLE_STATIC_LIBRARIES', '', links_whole)
 end
 
 -- Write a list of relative paths following the tag, e.g. for source files, includes, ..
 function ndk.writeRelativePaths(tag, location, paths, local_path)
-		
-	-- Remap paths relative to project and escape them
-	for i,p in ipairs(paths) do
-		paths[i] = make.esc(path.getrelative(location, p))
-	end
 
 	-- Optionally make paths relative to local_path
 	local prefix = ''
@@ -153,8 +243,19 @@ function ndk.writeRelativePaths(tag, location, paths, local_path)
 		prefix = '$(LOCAL_PATH)/'
 	end			
 
+	local cleaned_paths = {}
+	
+	-- Remap paths relative to project and escape them
+	for i,p in ipairs(paths) do
+		if path.isabsolute(p) then
+			table.insert(cleaned_paths, p)
+		else
+			table.insert(cleaned_paths, prefix .. make.esc(path.getrelative(location, p)))
+		end
+	end
+
 	-- Call helper
-	ndk.writeStrings(tag, prefix, paths)
+	ndk.writeStrings(tag, '', cleaned_paths)
 end
 
 -- Write a list of relative paths following the tag, e.g. for source files, includes, ..
@@ -216,17 +317,11 @@ function ndk.generateMakefile(prj, cfg)
 	_p('# Project configuration')
 	_p('LOCAL_MODULE := '..ndk.getModuleName(prj, cfg))
 	ndk.writeStrings('LOCAL_CFLAGS', '-D', cfg.defines)
+	ndk.writeStrings('LOCAL_CPPFLAGS', '', cfg.buildoptions)
 	ndk.writeStrings('LOCAL_CPP_FEATURES', '', ndk.getCppFeatures(cfg))
 
 	-- Join linker options with linked libraries to get single table
-	local link_options = cfg.linkoptions
-	local links = config.getlinks(cfg, 'system', 'basename')
-	for _,v in ipairs(links) do
-		table.insert(link_options, '-l'..v)
-	end
-	ndk.writeStrings('LOCAL_LDLIBS', '', link_options)
-	ndk.writeStrings('LOCAL_SHARED_LIBRARIES', '', ndk.getDependentModules(prj, cfg, premake.SHAREDLIB))
-	ndk.writeStrings('LOCAL_STATIC_LIBRARIES', '', ndk.getDependentModules(prj, cfg, premake.STATICLIB))
+	ndk.writeLinks(prj, cfg)
 	_p('')
 
 	_p('# Include paths')
@@ -253,6 +348,8 @@ function ndk.generateMakefile(prj, cfg)
 	_p('')
 
 	_p('# Project dependencies')
+	ndk.writeModulePaths(cfg.ndkmodulepaths)
+	ndk.writeModules(cfg.ndkmodules)
 	ndk.writeDependencies(local_path, project.getdependencies(prj), cfg)
 	_p('')
 

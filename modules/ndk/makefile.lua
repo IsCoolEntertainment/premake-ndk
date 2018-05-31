@@ -4,82 +4,12 @@
 -- Copyright (c) 2014 Will Vale and the Premake project
 --
 
-local ndk       = premake.modules.ndk
-local project   = premake.project
-local config    = premake.config
-local make      = premake.make
+require ("gmake")
 
--- Register the action with Premake.
-newaction {
-	trigger     = "ndk-makefile",
-	shortname   = "Android NDK makefiles",
-	description = "Generate makefiles for Android ndk-build",
-
-	-- The capabilities of this action
-	valid_kinds     = { "WindowedApp", "StaticLib", "SharedLib" },
-	valid_languages = { "C", "C++" },
-	valid_tools     = {
-		cc     = { "gcc" },
-	},
-
-	onsolution = function(sln)
-		-- There isn't anything meaningful to generate for solutions. ndk-build is really intended to 
-		-- compile and link together all the components for a given app.
-	end,
-
-	onproject = function(prj)
-		-- Not all projects can generate something sensible.
-		if  not ndk.isValidProject(prj) then
-			return
-		end
-
-		-- Need to generate one makefile per configuration
-		for cfg in project.eachconfig(prj) do
-			if cfg.platform ~= ndk.ANDROID then
-				error('The only supported platform for NDK builds is "android"')
-			end		
-
-			-- Define closure to pass config
-			function generateMakefileCallback(prj)
-				ndk.generateMakefile(prj, cfg)
-			end
-			function generateAppMakefileCallback(prj)
-				ndk.generateAppMakefile(prj, cfg)
-			end
-
-			-- Generate the ndk-build makefile
-			local makefileName = ndk.getMakefileName(prj, cfg, ndk.MAKEFILE)
-			local makefileTempName = makefileName .. ".tmp"
-			
-			premake.generate(prj, makefileTempName, generateMakefileCallback)
-			ndk.compareAndUpdate(makefileTempName, makefileName)
-
-			if cfg.kind == premake.WINDOWEDAPP then
-				-- Generate the application makefile for application projects only
-				makefileName = ndk.getMakefileName(prj, cfg, ndk.APPMAKEFILE)
-				makefileTempName = makefileName .. ".tmp"
-				
-				premake.generate(prj, makefileTempName, generateAppMakefileCallback)
-				ndk.compareAndUpdate(makefileTempName, makefileName)
-			end
-		end
-	end,
-
-	oncleansolution = function(sln)
-		-- We don't generate anything for solutions, so there's nothing to clean.
-	end,
-
-	oncleanproject = function(prj)
-		-- Need to clean one makefile per configuration
-		for cfg in project.eachconfig(prj) do
-			premake.clean.file(prj, ndk.getMakefileName(prj, cfg, ndk.MAKEFILE))
-
-			if prj.kind == premake.WINDOWEDAPP then
-				premake.clean.file(prj, ndk.getMakefileName(prj, cfg, ndk.APPMAKEFILE))
-			end
-		end
-	end
-}
+local p = premake
+local ndk       = p.modules.ndk
+local project   = p.project
+local config    = p.config
 
 function ndk.compareAndUpdate(newFile, originalFile)
 
@@ -174,7 +104,7 @@ function ndk.writeDependencies(location, depends, cfg)
 			local p = premake.filename(d, ndk.getMakefileName(d, cfg, ndk.MAKEFILE))
 			p = path.getrelative(location, p)
 			p = path.getdirectory(p)
-			table.insert(modules, make.esc(p))
+			table.insert(modules, premake.modules.gmake.esc(p))
 		end
 	end
 	ndk.writeModules(modules)
@@ -250,7 +180,7 @@ function ndk.writeRelativePaths(tag, location, paths, local_path)
 		if path.isabsolute(p) then
 			table.insert(cleaned_paths, p)
 		else
-			table.insert(cleaned_paths, prefix .. make.esc(path.getrelative(location, p)))
+			table.insert(cleaned_paths, prefix .. premake.modules.gmake.esc(path.getrelative(location, p)))
 		end
 	end
 

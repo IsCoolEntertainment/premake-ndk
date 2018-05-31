@@ -122,10 +122,10 @@ api.register {
 }       
 
 -- Support code
-require 'common'
+include( 'common.lua' )
 
 -- Actions
-require 'makefile'
-require 'manifest'
+include( 'makefile.lua' )
+include( 'android_xml.lua' )
 
 return ndk

@@ -255,7 +255,21 @@ function ndk.generateMakefile(prj, cfg)
 	_p('')
 
 	_p('# Include paths')
-	ndk.writeRelativePaths('LOCAL_C_INCLUDES', local_path, cfg.includedirs, true)
+        local includedirs = {}
+
+	for _, p in ipairs(cfg.includedirs) do
+		if not table.contains(includedirs, p) then
+			table.insert(includedirs, p)
+		end
+	end
+
+	for _, p in ipairs(cfg.sysincludedirs) do
+		if not table.contains(includedirs, p) then
+			table.insert(includedirs, p)
+		end
+	end
+
+	ndk.writeRelativePaths('LOCAL_C_INCLUDES', local_path, includedirs, true)
 	_p('')
 
 	_p('# Source files')

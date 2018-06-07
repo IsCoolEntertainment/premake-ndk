@@ -31,17 +31,7 @@ function ndk.isValidProject(prj)
 		return false
 	end
 
-	-- Otherwise valid if it contains a C or C++ file (under Visual Studio it's convenient to have non-compiling projects sometimes)
-	for cfg in project.eachconfig(prj) do
-		for _,f in ipairs(cfg.files) do
-			if path.iscppfile(f) or path.iscfile(f) then
-				return true
-			end
-		end
-	end
-
-	-- Otherwise invalid
-	return false
+	return true
 end
 
 -- Extract API level from framework

@@ -29,6 +29,7 @@ api.register {
 		"all",
 		"armeabi",
 		"armeabi-v7a",
+                "arm64-v8a",
 		"mips",
 		"x86"
 	}

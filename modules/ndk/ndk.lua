@@ -41,6 +41,8 @@ api.register {
 	scope = "config",
 	kind = "string",
 	allowed = {
+		"c++_static",
+		"c++_shared",
 		"gabi++_static",
 		"gabi++_shared",
 		"gnustl_static",

@@ -135,8 +135,6 @@ function ndk.writeLinks(prj, cfg)
 		table.insert(link_options, '-L' .. v)
 	end
 
-        table.insert(link_options, '-L$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/' .. cfg.toolchain .. '/libs/$(TARGET_ARCH_ABI)/thumb/')
-
 	-- links system libraries, except the one specified as "whole"
 	for _,v in ipairs(links) do
 		if not table.contains(cfg.ndklinkswhole, v) then
@@ -146,8 +144,6 @@ function ndk.writeLinks(prj, cfg)
 		end
 	end
 
-        table.insert(link_options, '-l'..cfg.stl)
-        
 	ndk.writeStrings('LOCAL_LDLIBS', '', link_options)
 
 	-- add shared libraries

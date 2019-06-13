@@ -60,6 +60,13 @@ api.register {
 	kind = "string"
 }
 
+-- Specify android target version
+api.register {
+	name = "targetversion",
+	scope = "config",
+	kind = "string"
+}
+
 -- Specify android package name
 api.register {
 	name = "packagename",

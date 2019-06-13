@@ -77,8 +77,8 @@ function ndk.generateAppMakefile(prj, cfg)
 	_p('')
 
 	_p('# Application settings')
-	if cfg.framework then
-		_p('APP_PLATFORM := android-%d', ndk.getApiLevel(cfg))
+	if cfg.targetversion then
+		_p('APP_PLATFORM := android-%d', cfg.targetversion)
 	end
 	if cfg.abis then
 		_p('APP_ABI := %s', table.concat(cfg.abis, ' '))
